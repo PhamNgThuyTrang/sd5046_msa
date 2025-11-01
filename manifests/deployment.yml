@@ -1,0 +1,19 @@
+apiVersion : apps/v1
+kind: Deployment
+metadata:
+  name: phamngthuytrangsdmsa 
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: phamngthuytrangsdmsa
+  template:
+    metadata:
+      labels:
+        app: phamngthuytrangsdmsa 
+    spec:
+      containers:
+        - name: phamngthuytrangsdmsa 
+          image: sd5046acr.azurecr.io/phamngthuytrangsdmsa
+          ports:
+          - containerPort: 3000
