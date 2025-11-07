@@ -60,7 +60,7 @@ stages:
       vmImage: $(vmImageName)
       name: 'Default'
       agent: 'linux-agent-1'
-    environment: 'PhamNgThuyTrangsd5046msa-9393.kube-system'
+    environment: 'PhamNgThuyTrangsd5046msa-9393.default'
     strategy:
       runOnce:
         deploy:
@@ -95,7 +95,7 @@ stages:
       runOnce:
         deploy:
           steps:
-          - reviewApp: kube-system
+          - reviewApp: default
 
           - task: Kubernetes@1
             displayName: 'Create a new namespace for the pull request'
