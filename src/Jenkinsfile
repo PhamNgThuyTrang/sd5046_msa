@@ -1,0 +1,75 @@
+pipeline {
+    agent any
+    
+    environment {
+        AWS_REGION = 'us-east-1'
+        ECR_REGISTRY = '019394553470.dkr.ecr.us-east-1.amazonaws.com/ecr-sd5046-aws-infrastructure'
+        ECR_REPOSITORY_FRONTEND = 'sd5046-msa-frontend'
+        ECR_REPOSITORY_BACKEND = 'sd5046-msa-backend'
+        IMAGE_TAG = "${BUILD_NUMBER}"
+        AWS_CREDENTIAL_ID = 'aws-credentials'
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        
+        stage('Build Backend Image') {
+            steps {
+                dir('src/backend') {
+                    script {
+                        sh 'docker build -t ${ECR_REPOSITORY_BACKEND}:${IMAGE_TAG} .'
+                        sh 'docker tag ${ECR_REPOSITORY_BACKEND}:${IMAGE_TAG} ${ECR_REGISTRY}/${ECR_REPOSITORY_BACKEND}:${IMAGE_TAG}'
+                        sh 'docker tag ${ECR_REPOSITORY_BACKEND}:${IMAGE_TAG} ${ECR_REGISTRY}/${ECR_REPOSITORY_BACKEND}:latest'
+                    }
+                }
+            }
+        }
+        
+        stage('Build Frontend Image') {
+            steps {
+                dir('src/frontend') {
+                    script {
+                        sh 'docker build -t ${ECR_REPOSITORY_FRONTEND}:${IMAGE_TAG} .'
+                        sh 'docker tag ${ECR_REPOSITORY_FRONTEND}:${IMAGE_TAG} ${ECR_REGISTRY}/${ECR_REPOSITORY_FRONTEND}:${IMAGE_TAG}'
+                        sh 'docker tag ${ECR_REPOSITORY_FRONTEND}:${IMAGE_TAG} ${ECR_REGISTRY}/${ECR_REPOSITORY_FRONTEND}:latest'
+                    }
+                }
+            }
+        }
+        
+        stage('Push to ECR') {
+            steps {
+                script {
+                    withAWS(credentials: AWS_CREDENTIAL_ID, region: AWS_REGION) {
+                        sh 'aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}'
+                        sh 'docker push ${ECR_REGISTRY}/${ECR_REPOSITORY_BACKEND}:${IMAGE_TAG}'
+                        sh 'docker push ${ECR_REGISTRY}/${ECR_REPOSITORY_BACKEND}:latest'
+                        sh 'docker push ${ECR_REGISTRY}/${ECR_REPOSITORY_FRONTEND}:${IMAGE_TAG}'
+                        sh 'docker push ${ECR_REGISTRY}/${ECR_REPOSITORY_FRONTEND}:latest'
+                    }
+                }
+            }
+        }
+        
+        stage('Update Manifests') {
+            steps {
+                script {
+                    sh """
+                        sed -i 's|image:.*backend.*|image: ${ECR_REGISTRY}/${ECR_REPOSITORY_BACKEND}:${IMAGE_TAG}|g' backend.yaml
+                        sed -i 's|image:.*frontend.*|image: ${ECR_REGISTRY}/${ECR_REPOSITORY_FRONTEND}:${IMAGE_TAG}|g' frontend.yaml
+                    """
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            sh 'docker system prune -f'
+        }
+    }
+}
