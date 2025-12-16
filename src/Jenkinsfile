@@ -3,7 +3,7 @@ pipeline {
     
     environment {
         AWS_REGION = 'us-east-1'
-        ECR_REGISTRY = '019394553470.dkr.ecr.us-east-1.amazonaws.com/ecr-sd5046-aws-infrastructure'
+        ECR_REGISTRY = '019394553470.dkr.ecr.us-east-1.amazonaws.com'
         ECR_REPOSITORY_FRONTEND = 'sd5046-msa-frontend'
         ECR_REPOSITORY_BACKEND = 'sd5046-msa-backend'
         IMAGE_TAG = "${BUILD_NUMBER}"
