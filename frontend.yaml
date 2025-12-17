@@ -30,7 +30,7 @@ spec:
         - name: ecr-secret
       containers:
         - name: react-app
-          image: 019394553470.dkr.ecr.us-east-1.amazonaws.com/sd5046-msa-frontend:latest
+          image: 019394553470.dkr.ecr.us-east-1.amazonaws.com/sd5046-msa-frontend:12
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
