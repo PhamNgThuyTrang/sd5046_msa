@@ -8,6 +8,8 @@ pipeline {
         ECR_REPOSITORY_BACKEND = 'sd5046-msa-backend'
         IMAGE_TAG = "${BUILD_NUMBER}"
         AWS_CREDENTIAL_ID = 'aws-credentials'
+        EKS_CLUSTER_NAME = 'eks-dev'
+        GITHUB_REPO = 'PhamNgThuyTrang/sd5046_msa'
     }
     
     stages {
@@ -58,16 +60,90 @@ pipeline {
         stage('Update Manifests') {
             steps {
                 script {
+                    // Update manifest files with new image tags
                     sh """
                         sed -i 's|image:.*backend.*|image: ${ECR_REGISTRY}/${ECR_REPOSITORY_BACKEND}:${IMAGE_TAG}|g' backend.yaml
                         sed -i 's|image:.*frontend.*|image: ${ECR_REGISTRY}/${ECR_REPOSITORY_FRONTEND}:${IMAGE_TAG}|g' frontend.yaml
                     """
+                    
+                    // Commit and push manifest changes with GitHub credentials
+                    withCredentials([usernamePassword(credentialsId: 'github-credentials', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
+                        sh """
+                            git config user.name "trangpham"
+                            git config user.email "pntt220200@gmail.com"
+                            git add backend.yaml frontend.yaml
+                            git diff --staged --quiet || git commit -m "Update image tags to ${IMAGE_TAG} [skip ci]"
+                            git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/${GITHUB_REPO}.git HEAD:pratice-devops-jenkin || echo "Push failed"
+                        """
+                    }
+                }
+            }
+        }
+        
+        stage('Deploy to EKS') {
+            steps {
+                script {
+                    withAWS(credentials: AWS_CREDENTIAL_ID, region: AWS_REGION) {
+                        // Update kubeconfig
+                        sh 'aws eks update-kubeconfig --name ${EKS_CLUSTER_NAME} --region ${AWS_REGION}'
+                        
+                        // Deploy MongoDB first (if not already deployed)
+                        sh 'kubectl apply -f mongodb.yaml'
+                        
+                        // Wait for MongoDB to be ready
+                        sh 'kubectl wait --for=condition=ready pod -l name=mongo --timeout=300s || echo "MongoDB not ready yet"'
+                        
+                        // Deploy Backend
+                        sh 'kubectl apply -f backend.yaml'
+                        
+                        // Deploy Frontend
+                        sh 'kubectl apply -f frontend.yaml'
+                        
+                        // Deploy Ingress (optional)
+                        sh 'kubectl apply -f ingress.yml || echo "Ingress deployment skipped or failed"'
+                        
+                        // Wait for deployments to be ready
+                        sh 'kubectl wait --for=condition=available deployment/backend --timeout=300s'
+                        sh 'kubectl wait --for=condition=available deployment/frontend --timeout=300s'
+                        
+                        // Show deployment status
+                        sh 'kubectl get pods'
+                        sh 'kubectl get svc'
+                        sh 'kubectl get ingress'
+                    }
+                }
+            }
+        }
+        
+        stage('Verify Deployment') {
+            steps {
+                script {
+                    sh '''
+                        echo "=== Deployment Status ==="
+                        kubectl get deployments
+                        
+                        echo "=== Pod Status ==="
+                        kubectl get pods
+                        
+                        echo "=== Service Status ==="
+                        kubectl get svc
+                        
+                        echo "=== Recent Events ==="
+                        kubectl get events --sort-by='.lastTimestamp' | tail -20
+                    '''
                 }
             }
         }
     }
     
     post {
+        success {
+            echo "CI/CD Pipeline completed successfully!"
+            echo "Application deployed to EKS cluster: ${EKS_CLUSTER_NAME}"
+        }
+        failure {
+            echo "CI/CD Pipeline failed. Check logs above."
+        }
         always {
             sh 'docker system prune -f'
         }
