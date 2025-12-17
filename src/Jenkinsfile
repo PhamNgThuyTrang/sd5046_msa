@@ -67,7 +67,7 @@ pipeline {
                     """
                     
                     // Commit and push manifest changes with GitHub credentials
-                    withCredentials([usernamePassword(credentialsId: 'TrangPham_GithubAccount', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
+                    withCredentials([usernamePassword(credentialsId: 'github-credentials', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
                         sh """
                             git config user.name "trangpham"
                             git config user.email "pntt220200@gmail.com"
