@@ -73,7 +73,7 @@ pipeline {
                             git config user.email "pntt220200@gmail.com"
                             git add backend.yaml frontend.yaml
                             git diff --staged --quiet || git commit -m "Update image tags to ${IMAGE_TAG} [skip ci]"
-                            git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/${GITHUB_REPO}.git HEAD:pratice-devops-jenkin || echo "Push failed"
+                            git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/${GITHUB_REPO}.git HEAD:pratice-devops-jenkins || echo "Push failed"
                         """
                     }
                 }
