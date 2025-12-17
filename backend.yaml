@@ -29,7 +29,7 @@ spec:
         - name: ecr-secret
       containers:
         - name: backend
-          image: 019394553470.dkr.ecr.us-east-1.amazonaws.com/sd5046-msa-backend:24
+          image: 019394553470.dkr.ecr.us-east-1.amazonaws.com/sd5046-msa-backend:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
