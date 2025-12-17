@@ -1,14 +1,4 @@
 ---
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: mongo-sc
-provisioner: kubernetes.io/aws-ebs
-parameters:
-  type: gp2
-volumeBindingMode: WaitForFirstConsumer
-
----
 apiVersion: v1
 kind: Service
 metadata:
@@ -39,14 +29,13 @@ data:
   MONGODB_INITDB_ROOT_PASSWORD: cGFzc3dvcmQK
 ---
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
   name: mongo
 spec:
   selector:
     matchLabels:
       name: mongo
-  serviceName: "mongo"
   replicas: 1
   template:
     metadata:
@@ -56,7 +45,7 @@ spec:
       terminationGracePeriodSeconds: 10
       containers:
       - name: mongo
-        image: mongo
+        image: mongo:7-jammy
         ports:
           - containerPort: 27017
         envFrom:
@@ -64,18 +53,18 @@ spec:
                name: mongo-config
          - secretRef:
              name: mongo-secrets
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
         volumeMounts:
             - name: data-volume
               mountPath: /data/db
-  volumeClaimTemplates:
-    - metadata:
-        name: data-volume
-      spec:
-        storageClassName: mongo-sc
-        accessModes:
-          - "ReadWriteOnce"
-        resources:
-          requests:
-            storage: "1Gi"
+      volumes:
+        - name: data-volume
+          emptyDir: {}  # Temporary storage - no EBS CSI driver needed
 
 
