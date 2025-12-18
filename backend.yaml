@@ -25,9 +25,14 @@ spec:
       labels:
         app: backend
     spec:
+      imagePullSecrets:
+        - name: ecr-secret
       containers:
         - name: backend
-          image: hnguyencanh/backend:latest
+          image: 019394553470.dkr.ecr.us-east-1.amazonaws.com/sd5046-msa-backend:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
+          env:
+            - name: MONGO_URL
+              value: "mongodb://mongo:27017/mydb"
